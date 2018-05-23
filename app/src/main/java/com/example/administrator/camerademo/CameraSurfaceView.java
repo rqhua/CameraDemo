@@ -276,7 +276,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                 previewing = true;
             }
         } catch (IOException e) {
-            Logger.error("Error while START preview for camera", e);
+            Logger.error("Error while START preview for mCamera", e);
         }
     }
 
@@ -292,7 +292,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
                 mCamera = null;
             }
         } catch (Exception e) {
-            Logger.error("Error while STOP preview for camera", e);
+            Logger.error("Error while STOP preview for mCamera", e);
         }
     }
 
