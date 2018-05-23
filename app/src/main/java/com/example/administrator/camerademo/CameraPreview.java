@@ -1,12 +1,9 @@
 package com.example.administrator.camerademo;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
-
-import java.io.IOException;
 
 /**
  * Created by Administrator on 2018/5/23.
@@ -75,7 +72,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void capture(CameraHelper.CaptureCallback callback) {
-        getCameraHelper().takePicture(callback);
+        getCameraHelper().capture(callback);
     }
 
     public void onPause() {

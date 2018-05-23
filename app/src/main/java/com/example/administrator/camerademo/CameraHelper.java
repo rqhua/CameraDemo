@@ -1,10 +1,12 @@
 package com.example.administrator.camerademo;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.os.Message;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 
 import java.io.IOException;
@@ -16,6 +18,7 @@ import java.io.IOException;
 public class CameraHelper {
     private static final String TAG = "CameraHelper";
     private Camera mCamera = null;
+    private int mCurrentId = -1;
     private boolean opened = false;
     //message.what
     private static final int WHAT_OPEN_CAMERA = 1;
@@ -61,13 +64,22 @@ public class CameraHelper {
                 msg.obj = callback;
                 try {
                     // attempt to get a Camera instance
-                    mCamera = Camera.open();
-                    if (mCamera == null) {
-                        msg.arg1 = FAIL;
-                    } else {
-                        msg.arg1 = SUCCESS;
+                    int numberOfCameras = Camera.getNumberOfCameras();
+                    if (numberOfCameras > 0) {
+                        for (int i = 0; i < numberOfCameras; i++) {
+                            Camera.CameraInfo info = new Camera.CameraInfo();
+                            Camera.getCameraInfo(i, info);
+                            if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                                mCurrentId = i;
+                            }
+                        }
+                        mCamera = Camera.open(mCurrentId);
+                        if (mCamera == null) {
+                            msg.arg1 = FAIL;
+                        } else {
+                            msg.arg1 = SUCCESS;
+                        }
                     }
-
                 } catch (Exception e) {
                     msg.arg1 = FAIL;
                     Logger.error("Camera.onResume() Fail ", e);
@@ -102,6 +114,7 @@ public class CameraHelper {
 
     }
 
+    //停止预览
     public void stopPreView() {
         if (mCamera != null) {
             Logger.debug("stopPreView");
@@ -126,12 +139,13 @@ public class CameraHelper {
         }
     }
 
-    public void takePicture(final CaptureCallback callback) {
+    //拍照
+    public void capture(final CaptureCallback callback) {
         if (callback == null) {
             throw new NullPointerException("callback Can not be Null");
         }
         if (mCamera == null) {
-            Logger.error("takePicture: Fail,Camera == null");
+            Logger.error("capture: Fail,Camera == null");
             callback.onFail();
             return;
         }
@@ -159,6 +173,40 @@ public class CameraHelper {
             }
         });
     }
+
+    public static void setCameraDisplayOrientation(Activity activity, int cameraId, android.hardware.Camera camera) {
+        android.hardware.Camera.CameraInfo info =
+                new android.hardware.Camera.CameraInfo();
+        android.hardware.Camera.getCameraInfo(cameraId, info);
+        Context context;
+        int rotation = activity.getWindowManager().getDefaultDisplay()
+                .getRotation();
+        int degrees = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                degrees = 0;
+                break;
+            case Surface.ROTATION_90:
+                degrees = 90;
+                break;
+            case Surface.ROTATION_180:
+                degrees = 180;
+                break;
+            case Surface.ROTATION_270:
+                degrees = 270;
+                break;
+        }
+
+        int result;
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            result = (info.orientation + degrees) % 360;
+            result = (360 - result) % 360;  // compensate the mirror
+        } else {  // back-facing
+            result = (info.orientation - degrees + 360) % 360;
+        }
+        camera.setDisplayOrientation(result);
+    }
+
 
     /**
      * 检查设备是否是有相机
