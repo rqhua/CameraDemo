@@ -5,7 +5,9 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
+import android.view.SurfaceHolder;
+
+import java.io.IOException;
 
 /**
  * Created by Administrator on 2018/5/23.
@@ -14,6 +16,7 @@ import android.util.Log;
 public class CameraHelper {
     private static final String TAG = "CameraHelper";
     private Camera mCamera = null;
+    private boolean opened = false;
     //message.what
     private static final int WHAT_OPEN_CAMERA = 1;
 
@@ -27,8 +30,10 @@ public class CameraHelper {
                 case WHAT_OPEN_CAMERA:
                     if (msg.obj instanceof OpenCallback) {
                         if (msg.arg1 == SUCCESS) {
-                            ((OpenCallback) msg.obj).onSuccess(mCamera);
+                            opened = true;
+                            ((OpenCallback) msg.obj).onSuccess();
                         } else {
+                            opened = false;
                             ((OpenCallback) msg.obj).onFail();
                         }
                     }
@@ -65,7 +70,7 @@ public class CameraHelper {
 
                 } catch (Exception e) {
                     msg.arg1 = FAIL;
-                    Log.e(TAG, "Camera.open() Fail ", e);
+                    Logger.error("Camera.onResume() Fail ", e);
                 } finally {
                     mHandler.sendMessage(msg);
                 }
@@ -73,10 +78,92 @@ public class CameraHelper {
         }).start();
     }
 
+    public void startPreview() {
+        if (mCamera != null) {
+            mCamera.startPreview();
+        }
+    }
+
+    //开启预览
+    public void setPreviewDisplayAndStart(SurfaceHolder holder) {
+
+        try {
+            if (mCamera != null) {
+                mCamera.setPreviewDisplay(holder);
+                mCamera.startPreview();
+                Logger.debug("setPreviewDisplayAndStart");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Logger.error("setDisplayAndStart: ", e);
+        } catch (Exception e) {
+            Logger.error("setDisplayAndStart: ", e);
+        }
+
+    }
+
+    public void stopPreView() {
+        if (mCamera != null) {
+            Logger.debug("stopPreView");
+            // Call stopPreview() to stop updating the preview surface.
+            mCamera.stopPreview();
+        }
+    }
+
+    //停止预览并释放相机
+    public void stopPreviewAndFreeCamera() {
+
+        if (mCamera != null) {
+            // Call stopPreview() to stop updating the preview surface.
+            mCamera.stopPreview();
+            // Important: Call release() to release the camera for use by other
+            // applications. Applications should release the camera immediately
+            // during onPause() and re-onResume() it during onResume()).
+            mCamera.release();
+            opened = false;
+            mCamera = null;
+            Logger.debug("stopPreviewAndFreeCamera");
+        }
+    }
+
+    public void takePicture(final CaptureCallback callback) {
+        if (callback == null) {
+            throw new NullPointerException("callback Can not be Null");
+        }
+        if (mCamera == null) {
+            Logger.error("takePicture: Fail,Camera == null");
+            callback.onFail();
+            return;
+        }
+        mCamera.takePicture(null, null, new Camera.PictureCallback() {
+            @Override
+            public void onPictureTaken(byte[] data, Camera camera) {
+                Logger.debug("onPictureTaken: Success");
+                /*File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+                if (pictureFile == null){
+                    Log.d(TAG, "Error creating media file, check storage permissions: " +
+                            e.getMessage());
+                    return;
+                }
+
+                try {
+                    FileOutputStream fos = new FileOutputStream(pictureFile);
+                    fos.write(data);
+                    fos.close();
+                } catch (FileNotFoundException e) {
+                    Log.d(TAG, "File not found: " + e.getMessage());
+                } catch (IOException e) {
+                    Log.d(TAG, "Error accessing file: " + e.getMessage());
+                }*/
+                callback.onSuccess();
+            }
+        });
+    }
+
     /**
      * 检查设备是否是有相机
      */
-    private boolean checkCameraHardware(Context context) {
+    public boolean checkCameraHardware(Context context) {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             return true;
         } else {
@@ -86,7 +173,7 @@ public class CameraHelper {
 
     //打开相机回调
     public interface OpenCallback {
-        void onSuccess(Camera camera);
+        void onSuccess();
 
         void onFail();
     }
@@ -97,6 +184,4 @@ public class CameraHelper {
 
         void onFail();
     }
-
-
 }

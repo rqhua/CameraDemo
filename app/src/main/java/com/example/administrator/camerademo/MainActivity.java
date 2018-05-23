@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onGrantWriteResult(boolean granted) {
                                     if (granted)
-                                        startActivityForResult(new Intent(MainActivity.this, CameraActivity.class), 2);
+                                        startActivityForResult(new Intent(MainActivity.this, Camera0Activity.class), 2);
                                 }
                             });
                         } /*else {

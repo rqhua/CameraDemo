@@ -34,7 +34,7 @@ public class PermissionCompatUtil {
             Camera mCamera = null;
             try {
                 mCamera = Camera.open();
-                // setParameters 是针对魅族MX5 做的。MX5 通过Camera.open() 拿到的Camera
+                // setParameters 是针对魅族MX5 做的。MX5 通过Camera.onResume() 拿到的Camera
                 // 对象不为null
                 Camera.Parameters mParameters = mCamera.getParameters();
                 mCamera.setParameters(mParameters);

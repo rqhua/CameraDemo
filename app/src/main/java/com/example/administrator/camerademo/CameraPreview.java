@@ -1,11 +1,10 @@
 package com.example.administrator.camerademo;
 
 import android.content.Context;
-import android.hardware.Camera;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
 import java.io.IOException;
 
@@ -15,28 +14,37 @@ import java.io.IOException;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     private static final String TAG = "CameraPreview";
+    private Context mContext;
+    //相机操作
+    private CameraHelper cameraHelper;
     private SurfaceHolder mHolder;
-    private Camera mCamera;
 
-    public CameraPreview(Context context, Camera camera) {
+    private CameraHelper getCameraHelper() {
+        return cameraHelper;
+    }
+
+    public CameraPreview(Context context) {
         super(context);
+        mContext = context;
         mHolder = getHolder();
         mHolder.addCallback(this);
-        mCamera = camera;
+        cameraHelper = new CameraHelper();
+        if (!getCameraHelper().checkCameraHardware(context)) {
+            Toast.makeText(mContext, "没有相机", Toast.LENGTH_SHORT).show();
+            return;
+        }
     }
+
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        try {
-            mCamera.setPreviewDisplay(mHolder);
-            mCamera.startPreview();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Logger.debug("surfaceCreated");
+        getCameraHelper().setPreviewDisplayAndStart(mHolder);
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        Logger.debug("surfaceChanged");
         //预览大小等发生变化时，先停止预览
         if (mHolder.getSurface() == null) {
             // preview surface does not exist
@@ -45,7 +53,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         // stop preview before making changes
         try {
-            mCamera.stopPreview();
+            getCameraHelper().stopPreView();
         } catch (Exception e) {
             // ignore: tried to stop a non-existent preview
         }
@@ -56,16 +64,36 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         //新属性开始预览
         // start preview with new settings
-        try {
-            mCamera.setPreviewDisplay(mHolder);
-            mCamera.startPreview();
-        } catch (Exception e) {
-            Log.d(TAG, "Error starting mCamera preview: " + e.getMessage());
-        }
+        getCameraHelper().startPreview();
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        Logger.debug("surfaceDestroyed");
         //releasing the Camera preview
+        getCameraHelper().stopPreviewAndFreeCamera();
+    }
+
+    public void capture(CameraHelper.CaptureCallback callback) {
+        getCameraHelper().takePicture(callback);
+    }
+
+    public void onPause() {
+        getCameraHelper().stopPreviewAndFreeCamera();
+    }
+
+    public void onResume() {
+        getCameraHelper().open(new CameraHelper.OpenCallback() {
+            @Override
+            public void onSuccess() {
+                getCameraHelper().setPreviewDisplayAndStart(mHolder);
+                Logger.debug("onResume onSuccess: ");
+            }
+
+            @Override
+            public void onFail() {
+                Logger.error("打开相机失败");
+            }
+        });
     }
 }
