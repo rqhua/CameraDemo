@@ -235,7 +235,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         if (optimalSize != null && mViewHeight != 0 && mViewWidth != 0) {
 //            parameters.setPictureSize(optimalSize.width, optimalSize.height);
             parameters.setPreviewSize(optimalSize.width, optimalSize.height);
-//            parameters.setPreviewSize(optimalSize.width, optimalSize.height);
+//            parameters.chooseOptimalSize(optimalSize.width, optimalSize.height);
             Logger.debug("mViewWidth：" + mViewWidth + " mViewHeight：" + mViewHeight);
             Logger.debug("相机宽：" + optimalSize.width + " 相机高：" + optimalSize.height);
         }

@@ -16,8 +16,8 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera0);
-        setViewEnable(R.id.btn_capture, false);
-        setViewVisible(R.id.view_empty, View.GONE);
+//        setViewEnable(R.id.btn_capture, false);
+//        setViewVisible(R.id.view_empty, View.GONE);
         cameraPreview = new CameraPreview(this);
         findViewById(R.id.btn_capture).setOnClickListener(this);
         findViewById(R.id.btn_switch).setOnClickListener(this);
@@ -30,13 +30,11 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
     @Override
     protected void onResume() {
         super.onResume();
-        cameraPreview.onResume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        cameraPreview.onPause();
     }
 
     @Override
@@ -59,10 +57,10 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
                 cameraPreview.switchCamer();
                 break;
             case R.id.btn_smallview:
-                setViewVisible(R.id.view_empty, View.VISIBLE);
+//                setViewVisible(R.id.view_empty, View.VISIBLE);
                 break;
             case R.id.btn_largeview:
-                setViewVisible(R.id.view_empty, View.GONE);
+//                setViewVisible(R.id.view_empty, View.GONE);
                 break;
         }
     }

@@ -1,6 +1,6 @@
 package com.example.administrator.camerademo;
 
-import android.content.Context;
+import android.app.Activity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
@@ -11,19 +11,21 @@ import android.widget.Toast;
 
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     private static final String TAG = "CameraPreview";
-    private Context mContext;
+    private Activity mContext;
     //相机操作
     private CameraHelper cameraHelper;
     private SurfaceHolder mHolder;
+    private int mWidth;
+    private int mHeight;
 
     private CameraHelper getCameraHelper() {
         return cameraHelper;
     }
 
-    public CameraPreview(Context context) {
+    public CameraPreview(Activity context) {
         super(context);
         mContext = context;
-        cameraHelper = new CameraHelper();
+        this.cameraHelper = new CameraHelper(context);
         if (!getCameraHelper().checkCameraHardware(mContext)) {
             Toast.makeText(mContext, "没有相机", Toast.LENGTH_SHORT).show();
             return;
@@ -36,7 +38,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         Logger.debug("surfaceCreated");
-        getCameraHelper().setPreviewDisplayAndStart(mHolder);
+
+
     }
 
     @Override
@@ -47,13 +50,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // preview surface does not exist
             return;
         }
+        getCameraHelper().stopPreviewAndFreeCamera();
+        mWidth = width;
+        mHeight = height;
+        getCameraHelper().initCamera(mWidth, mHeight, openCallback);
 
+        mWidth = -1;
+        mHeight = -1;
         // stop preview before making changes
-        try {
-            getCameraHelper().stopPreView();
-        } catch (Exception e) {
-            // ignore: tried to stop a non-existent preview
-        }
+
 
         //重新设置预览大小等属性
         // set preview size and make any resize, rotate or
@@ -61,7 +66,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         //新属性开始预览
         // start preview with new settings
-        getCameraHelper().startPreview();
     }
 
     @Override
@@ -88,10 +92,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         getCameraHelper().capture(callback);
     }
 
-
-    public void onResume() {
-        getCameraHelper().open(openCallback);
-    }
 
     public void switchCamer() {
         getCameraHelper().switchCamera(openCallback);
