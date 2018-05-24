@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
@@ -19,7 +20,7 @@ public class CameraHelper {
     private static final String TAG = "CameraHelper";
     private Camera mCamera = null;
     private int mCurrentId = -1;
-    private boolean opened = false;
+    private boolean previewing = false;
     //message.what
     private static final int WHAT_OPEN_CAMERA = 1;
 
@@ -33,10 +34,8 @@ public class CameraHelper {
                 case WHAT_OPEN_CAMERA:
                     if (msg.obj instanceof OpenCallback) {
                         if (msg.arg1 == SUCCESS) {
-                            opened = true;
                             ((OpenCallback) msg.obj).onSuccess();
                         } else {
-                            opened = false;
                             ((OpenCallback) msg.obj).onFail();
                         }
                     }
@@ -56,6 +55,97 @@ public class CameraHelper {
         if (callback == null) {
             throw new NullPointerException("callback Can not be Null");
         }
+        stopPreviewAndFreeCamera();
+        int numberOfCameras = Camera.getNumberOfCameras();
+        int back = -1;
+        int front = -1;
+        if (numberOfCameras > 0) {
+            for (int i = 0; i < numberOfCameras; i++) {
+                Camera.CameraInfo info = new Camera.CameraInfo();
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    back = i;
+                } else if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    front = i;
+                }
+            }
+        }
+
+        if (mCurrentId != -1) {
+            if (mCurrentId == back || mCurrentId == front) {
+                open(mCurrentId, callback);
+                return;
+            }
+        }
+
+        if (back != -1) {
+            Logger.debug("打开后摄像头");
+            mCurrentId = back;
+        } else if (front != -1) {
+            Logger.debug("打开前摄像头");
+            mCurrentId = back;
+        }
+        Logger.debug("打开相机Id " + mCurrentId);
+        if (mCurrentId != -1) {
+            open(mCurrentId, callback);
+            return;
+        }
+
+        Logger.error("相机打开失败");
+        callback.onFail();
+    }
+
+    //切换摄像头
+    public void switchCamera(OpenCallback callback) {
+        if (callback == null) {
+            throw new NullPointerException("callback Can not be Null");
+        }
+        stopPreviewAndFreeCamera();
+        int numberOfCameras = Camera.getNumberOfCameras();
+        int back = -1;
+        int front = -1;
+        if (numberOfCameras > 0) {
+            for (int i = 0; i < numberOfCameras; i++) {
+                Camera.CameraInfo info = new Camera.CameraInfo();
+                Camera.getCameraInfo(i, info);
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    back = i;
+                } else if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    front = i;
+                }
+            }
+        }
+        if (mCurrentId != -1) {
+            if (mCurrentId == back) {
+                if (front != -1) {
+                    mCurrentId = front;
+                }
+            } else if (mCurrentId == front) {
+                if (back != -1) {
+                    mCurrentId = back;
+                }
+            }
+        } else {
+            if (front != -1) {
+                mCurrentId = front;
+            } else if (back != -1) {
+                mCurrentId = back;
+            }
+        }
+        Logger.debug("back: " + back);
+        Logger.debug("front: " + front);
+        Logger.debug("switchCamera: " + mCurrentId);
+        if (mCurrentId != -1) {
+            open(mCurrentId, callback);
+            return;
+        }
+
+        Logger.error("切换相机失败");
+        callback.onFail();
+    }
+
+    //打开相机
+    private void open(final int id, final OpenCallback callback) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -64,21 +154,11 @@ public class CameraHelper {
                 msg.obj = callback;
                 try {
                     // attempt to get a Camera instance
-                    int numberOfCameras = Camera.getNumberOfCameras();
-                    if (numberOfCameras > 0) {
-                        for (int i = 0; i < numberOfCameras; i++) {
-                            Camera.CameraInfo info = new Camera.CameraInfo();
-                            Camera.getCameraInfo(i, info);
-                            if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                                mCurrentId = i;
-                            }
-                        }
-                        mCamera = Camera.open(mCurrentId);
-                        if (mCamera == null) {
-                            msg.arg1 = FAIL;
-                        } else {
-                            msg.arg1 = SUCCESS;
-                        }
+                    mCamera = Camera.open(id);
+                    if (mCamera == null) {
+                        msg.arg1 = FAIL;
+                    } else {
+                        msg.arg1 = SUCCESS;
                     }
                 } catch (Exception e) {
                     msg.arg1 = FAIL;
@@ -92,6 +172,7 @@ public class CameraHelper {
 
     public void startPreview() {
         if (mCamera != null) {
+            Logger.debug("startPreview");
             mCamera.startPreview();
         }
     }
@@ -111,7 +192,6 @@ public class CameraHelper {
         } catch (Exception e) {
             Logger.error("setDisplayAndStart: ", e);
         }
-
     }
 
     //停止预览
@@ -125,7 +205,6 @@ public class CameraHelper {
 
     //停止预览并释放相机
     public void stopPreviewAndFreeCamera() {
-
         if (mCamera != null) {
             // Call stopPreview() to stop updating the preview surface.
             mCamera.stopPreview();
@@ -133,7 +212,6 @@ public class CameraHelper {
             // applications. Applications should release the camera immediately
             // during onPause() and re-onResume() it during onResume()).
             mCamera.release();
-            opened = false;
             mCamera = null;
             Logger.debug("stopPreviewAndFreeCamera");
         }
@@ -212,6 +290,8 @@ public class CameraHelper {
      * 检查设备是否是有相机
      */
     public boolean checkCameraHardware(Context context) {
+        if (context == null)
+            throw new NullPointerException("Context can not be null");
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             return true;
         } else {

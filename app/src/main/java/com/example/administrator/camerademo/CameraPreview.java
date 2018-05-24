@@ -23,15 +23,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public CameraPreview(Context context) {
         super(context);
         mContext = context;
-        mHolder = getHolder();
-        mHolder.addCallback(this);
         cameraHelper = new CameraHelper();
-        if (!getCameraHelper().checkCameraHardware(context)) {
+        if (!getCameraHelper().checkCameraHardware(mContext)) {
             Toast.makeText(mContext, "没有相机", Toast.LENGTH_SHORT).show();
             return;
         }
-    }
 
+        mHolder = getHolder();
+        mHolder.addCallback(this);
+    }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -71,26 +71,35 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         getCameraHelper().stopPreviewAndFreeCamera();
     }
 
+    private CameraHelper.OpenCallback openCallback = new CameraHelper.OpenCallback() {
+        @Override
+        public void onSuccess() {
+            getCameraHelper().setPreviewDisplayAndStart(mHolder);
+            Logger.debug("OpenCallback.onSuccess()");
+        }
+
+        @Override
+        public void onFail() {
+            Logger.error("OpenCallback.onFail()");
+        }
+    };
+
     public void capture(CameraHelper.CaptureCallback callback) {
         getCameraHelper().capture(callback);
+    }
+
+
+    public void onResume() {
+        getCameraHelper().open(openCallback);
+    }
+
+    public void switchCamer() {
+        getCameraHelper().switchCamera(openCallback);
     }
 
     public void onPause() {
         getCameraHelper().stopPreviewAndFreeCamera();
     }
 
-    public void onResume() {
-        getCameraHelper().open(new CameraHelper.OpenCallback() {
-            @Override
-            public void onSuccess() {
-                getCameraHelper().setPreviewDisplayAndStart(mHolder);
-                Logger.debug("onResume onSuccess: ");
-            }
 
-            @Override
-            public void onFail() {
-                Logger.error("打开相机失败");
-            }
-        });
-    }
 }
