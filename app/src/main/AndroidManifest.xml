@@ -3,10 +3,12 @@
     package="com.example.administrator.camerademo">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -33,7 +35,8 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".Camera0Activity"
-            android:theme="@style/AppTheme.FullScreen"/>
+            android:theme="@style/AppTheme.FullScreen" />
+        <activity android:name=".CallSystemCameraActivity"></activity>
     </application>
 
 </manifest>

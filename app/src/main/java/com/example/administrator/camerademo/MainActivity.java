@@ -1,7 +1,7 @@
 package com.example.administrator.camerademo;
 
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,32 +13,42 @@ import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 
 public class MainActivity extends AppCompatActivity {
+    View.OnClickListener onClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(final View v) {
+            PermissionCompatUtil.checkCameraPermission(MainActivity.this, new PermissionCompatUtil.OnPermissionCallback() {
+                @Override
+                public void onGrantCameraResult(boolean granted) {
+                    if (granted) {
+                        PermissionCompatUtil.checkWritePermission(MainActivity.this, new PermissionCompatUtil.OnPermissionCallback() {
+                            @Override
+                            public void onGrantWriteResult(boolean granted) {
+                                if (granted) {
+                                    switch (v.getId()) {
+                                        case R.id.btn_define_capture:
+                                            startActivityForResult(new Intent(MainActivity.this, Camera0Activity.class), 2);
+                                            break;
+                                        case R.id.btn_system_capture:
+                                            startActivity(new Intent(MainActivity.this, CallSystemCameraActivity.class));
+                                            break;
+                                    }
+                                }
+                            }
+                        });
+                    } /*else {
+                    onBackPressed();
+                }*/
+                }
+            });
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        findViewById(R.id.jump).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                PermissionCompatUtil.checkCameraPermission(MainActivity.this, new PermissionCompatUtil.OnPermissionCallback() {
-                    @Override
-                    public void onGrantCameraResult(boolean granted) {
-                        if (granted) {
-                            PermissionCompatUtil.checkWritePermission(MainActivity.this, new PermissionCompatUtil.OnPermissionCallback() {
-                                @Override
-                                public void onGrantWriteResult(boolean granted) {
-                                    if (granted)
-                                        startActivityForResult(new Intent(MainActivity.this, Camera0Activity.class), 2);
-                                }
-                            });
-                        } /*else {
-                    onBackPressed();
-                }*/
-                    }
-                });
-            }
-        });
+        findViewById(R.id.btn_define_capture).setOnClickListener(onClickListener);
+        findViewById(R.id.btn_system_capture).setOnClickListener(onClickListener);
     }
 
     @Override
@@ -63,13 +73,4 @@ public class MainActivity extends AppCompatActivity {
         PermissionCompatUtil.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
     }
 
-
-
-    private void test(){
-        Intent intent = new Intent();
-//        intent.setData();
-//        intent.setType()
-        PackageManager packageManager = getPackageManager();
-//        packageManager.queryIntentActivities();
-    }
 }

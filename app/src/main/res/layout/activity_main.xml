@@ -9,12 +9,19 @@
     tools:context="com.example.administrator.camerademo.MainActivity">
 
     <Button
-        android:id="@+id/jump"
+        android:id="@+id/btn_define_capture"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:padding="30dp"
-        android:text="去拍照" />
+        android:text="自定义拍照" />
+    <Button
+        android:id="@+id/btn_system_capture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:padding="30dp"
+        android:text="系统拍照" />
 
     <ImageView
         android:id="@+id/imageview"
