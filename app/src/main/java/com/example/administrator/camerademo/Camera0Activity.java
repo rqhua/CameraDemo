@@ -43,7 +43,7 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
             case R.id.btn_capture:
                 cameraPreview.capture(new CameraHelper.CaptureCallback() {
                     @Override
-                    public void onSuccess() {
+                    public void onSuccess(byte[] data) {
                         Log.d(TAG, "onSuccess: ");
                     }
 

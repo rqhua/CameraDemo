@@ -26,6 +26,8 @@ public class CameraHelper {
     private int mWidth;
     private int mHeight;
 
+    private boolean previewing = false;
+
     public CameraHelper(Activity activity) {
         mActivity = activity;
     }
@@ -146,12 +148,12 @@ public class CameraHelper {
         parameters.setPictureFormat(ImageFormat.JPEG);
         //场景模式有可能会修改其他的模式的值
         String sceneMode = parameters.getSceneMode();
-        if (!sceneMode.equals(Camera.Parameters.SCENE_MODE_ACTION)) {
+        if (sceneMode != null && !sceneMode.equals(Camera.Parameters.SCENE_MODE_ACTION)) {
             parameters.setSceneMode(Camera.Parameters.SCENE_MODE_ACTION);
         }
         //闪光模式
         String flashMode = parameters.getFlashMode();
-        if (!flashMode.equals(Camera.Parameters.FLASH_MODE_AUTO)) {
+        if (flashMode != null && !flashMode.equals(Camera.Parameters.FLASH_MODE_AUTO)) {
             parameters.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
         }
         //对焦模式
@@ -211,21 +213,27 @@ public class CameraHelper {
         }
     }
 
-
+    //开启预览
     public void startPreview() {
-        if (mCamera != null) {
+        if (mCamera != null && !previewing) {
             Logger.debug("startPreview");
             mCamera.startPreview();
+            previewing = true;
+            mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                @Override
+                public void onAutoFocus(boolean success, Camera camera) {
+                    Logger.debug("onAutoFocus " + (success ? "success" : "fail"));
+                }
+            });
         }
     }
 
-    //开启预览
     public void setPreviewDisplayAndStart(SurfaceHolder holder) {
 
         try {
             if (mCamera != null) {
                 mCamera.setPreviewDisplay(holder);
-                mCamera.startPreview();
+                startPreview();
                 Logger.debug("setPreviewDisplayAndStart");
             }
         } catch (IOException e) {
@@ -238,10 +246,11 @@ public class CameraHelper {
 
     //停止预览
     public void stopPreView() {
-        if (mCamera != null) {
+        if (mCamera != null && previewing) {
             Logger.debug("stopPreView");
             // Call stopPreview() to stop updating the preview surface.
             mCamera.stopPreview();
+            previewing = false;
         }
     }
 
@@ -250,7 +259,7 @@ public class CameraHelper {
         try {
             if (mCamera != null) {
                 // Call stopPreview() to stop updating the preview surface.
-                mCamera.stopPreview();
+                stopPreView();
                 // Important: Call release() to release the camera for use by other
                 // applications. Applications should release the camera immediately
                 // during onPause() and re-onResume() it during onResume()).
@@ -265,6 +274,10 @@ public class CameraHelper {
 
     //拍照
     public void capture(final CaptureCallback callback) {
+        if (!previewing) {
+            startPreview();
+            return;
+        }
         if (callback == null) {
             throw new NullPointerException("callback Can not be Null");
         }
@@ -278,23 +291,8 @@ public class CameraHelper {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
                 Logger.debug("onPictureTaken: Success");
-                /*File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-                if (pictureFile == null){
-                    Log.d(TAG, "Error creating media file, check storage permissions: " +
-                            e.getMessage());
-                    return;
-                }
-
-                try {
-                    FileOutputStream fos = new FileOutputStream(pictureFile);
-                    fos.write(data);
-                    fos.close();
-                } catch (FileNotFoundException e) {
-                    Log.d(TAG, "File not found: " + e.getMessage());
-                } catch (IOException e) {
-                    Log.d(TAG, "Error accessing file: " + e.getMessage());
-                }*/
-                callback.onSuccess();
+                previewing = false;
+                callback.onSuccess(data);
             }
         });
     }
@@ -405,7 +403,7 @@ public class CameraHelper {
 
     //拍照回调
     public interface CaptureCallback {
-        void onSuccess();
+        void onSuccess(byte[] data);
 
         void onFail();
     }

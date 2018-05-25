@@ -96,10 +96,4 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public void switchCamer() {
         getCameraHelper().switchCamera(openCallback);
     }
-
-    public void onPause() {
-        getCameraHelper().stopPreviewAndFreeCamera();
-    }
-
-
 }
