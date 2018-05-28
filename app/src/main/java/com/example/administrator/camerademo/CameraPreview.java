@@ -5,6 +5,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
 
+import java.io.File;
+
 /**
  * Created by Administrator on 2018/5/23.
  */
@@ -88,8 +90,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
     };
 
-    public void capture(CameraHelper.CaptureCallback callback) {
-        getCameraHelper().capture(callback);
+    public void capture( CameraHelper.CaptureCallback callback) {
+        getCameraHelper().capture( callback);
     }
 
 

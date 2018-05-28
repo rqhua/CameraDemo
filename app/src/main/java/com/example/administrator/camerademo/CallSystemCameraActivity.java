@@ -17,7 +17,6 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 
-import com.example.administrator.camerademo.compress.Compress;
 import com.rqhua.demo.fileprovider.FileProvider7;
 
 import java.io.File;

@@ -3,6 +3,8 @@ package com.example.administrator.camerademo;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.os.Handler;
@@ -10,6 +12,9 @@ import android.os.Message;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
@@ -22,9 +27,12 @@ public class CameraHelper {
     private static final String TAG = "CameraHelper";
     private Activity mActivity;
     private Camera mCamera = null;
+    private int displayOrientation = -1;
     private int mCurrentId = -1;
     private int mWidth;
     private int mHeight;
+
+    private boolean isFrontCamera = false;
 
     private boolean previewing = false;
 
@@ -59,14 +67,18 @@ public class CameraHelper {
 
         if (mCurrentId != -1) {
             if (mCurrentId == back || mCurrentId == front) {
+                if (mCurrentId == front)
+                    isFrontCamera = true;
                 initCamera(mCurrentId, callback);
                 return;
             }
         }
 
         if (back != -1) {
+            isFrontCamera = false;
             mCurrentId = back;
         } else if (front != -1) {
+            isFrontCamera = true;
             mCurrentId = back;
         }
         if (mCurrentId != -1) {
@@ -101,17 +113,21 @@ public class CameraHelper {
             if (mCurrentId == back) {
                 if (front != -1) {
                     mCurrentId = front;
+                    isFrontCamera = true;
                 }
             } else if (mCurrentId == front) {
                 if (back != -1) {
                     mCurrentId = back;
+                    isFrontCamera = false;
                 }
             }
         } else {
             if (front != -1) {
                 mCurrentId = front;
+                isFrontCamera = true;
             } else if (back != -1) {
                 mCurrentId = back;
+                isFrontCamera = false;
             }
         }
         if (mCurrentId != -1) {
@@ -167,6 +183,11 @@ public class CameraHelper {
         Camera.Size size = getOptimalPreviewSize(supportedPreviewSizes, mWidth, mHeight);
         if (size != null)
             parameters.setPreviewSize(size.width, size.height);
+        List<Camera.Size> supportedPictureSizes = parameters.getSupportedPictureSizes();
+        //设置图片尺寸
+        Camera.Size pictureSize = getOptimalPreviewSize(supportedPictureSizes, mWidth, mHeight);
+        if (pictureSize != null)
+            parameters.setPictureSize(pictureSize.width, pictureSize.height);
         camera.setParameters(parameters);
     }
 
@@ -207,6 +228,7 @@ public class CameraHelper {
             Logger.debug("degress " + degrees);
             Logger.debug("CameraInfo.orientation " + info.orientation);
             Logger.debug("result " + result);
+            displayOrientation = result;
             camera.setDisplayOrientation(result);
         } catch (Exception e) {
             Logger.error("setCameraDisplayOrientation ", e);
@@ -292,10 +314,41 @@ public class CameraHelper {
             public void onPictureTaken(byte[] data, Camera camera) {
                 Logger.debug("onPictureTaken: Success");
                 previewing = false;
-                callback.onSuccess(data);
+
+                try {
+
+                    if (displayOrientation == -1) {
+                        displayOrientation = 0;
+                    }
+                    if (isFrontCamera && displayOrientation > 0) {
+                        displayOrientation = -displayOrientation;
+                    }
+
+
+                    LubanCompress compress = new LubanCompress();
+                    //压缩
+                    Bitmap srcBitmap = compress.compress(data);
+                    //旋转
+                    srcBitmap = compress.rotate(displayOrientation, srcBitmap);
+                    if (isFrontCamera) {
+                        //前置摄像头拍照，左右对调
+                        srcBitmap = compress.reverseLR(srcBitmap);
+                    }
+                    callback.onSuccess(srcBitmap, data);
+                    /*File file = new File(mActivity.getFilesDir() + "/picture.jpeg");
+                    if (!file.exists())
+                        file.createNewFile();
+                    LubanCompress compress = new LubanCompress();
+                    compress.datasToFile(data, file);
+                    callback.onSuccess(file, data);*/
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    callback.onFail();
+                }
             }
         });
     }
+
 
     private static final int MAX_PREVIEW_WIDTH = 1920;
 
@@ -403,8 +456,12 @@ public class CameraHelper {
 
     //拍照回调
     public interface CaptureCallback {
-        void onSuccess(byte[] data);
+        void onSuccess(Bitmap bitmap, byte[] data);
+
+        void onSuccess(File file, byte[] data);
 
         void onFail();
     }
+
+
 }
