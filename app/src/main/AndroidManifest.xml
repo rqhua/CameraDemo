@@ -30,13 +30,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".CameraActivity"
-            android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <activity
-            android:name=".Camera0Activity"
+            android:name=".define.Camera0Activity"
             android:theme="@style/AppTheme.FullScreen" />
-        <activity android:name=".CallSystemCameraActivity"></activity>
+        <activity android:name=".system.CallSystemCameraActivity"></activity>
     </application>
 
 </manifest>

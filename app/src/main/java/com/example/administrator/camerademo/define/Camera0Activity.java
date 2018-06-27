@@ -1,6 +1,5 @@
-package com.example.administrator.camerademo;
+package com.example.administrator.camerademo.define;
 
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -9,6 +8,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+
+import com.example.administrator.camerademo.R;
 
 import java.io.File;
 
@@ -31,8 +32,6 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
         cameraPreview = new CameraPreview(this);
         findViewById(R.id.btn_capture).setOnClickListener(this);
         findViewById(R.id.btn_switch).setOnClickListener(this);
-        findViewById(R.id.btn_smallview).setOnClickListener(this);
-        findViewById(R.id.btn_largeview).setOnClickListener(this);
         findViewById(R.id.image).setOnClickListener(this);
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(cameraPreview);
@@ -58,7 +57,7 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
             case R.id.btn_capture:
                 cameraPreview.capture(new CameraHelper.CaptureCallback() {
                     @Override
-                    public void onSuccess(File file, byte[] data) {
+                    public void onSuccess(File file) {
                         Luban.with(Camera0Activity.this)
                                 .load(file)
                                 .ignoreBy(100)
@@ -91,14 +90,6 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
                     }
 
                     @Override
-                    public void onSuccess(Bitmap bitmap, byte[] data) {
-                        Log.d(TAG, "onSuccess: ");
-                        ImageView viewById = (ImageView) findViewById(R.id.image);
-                        viewById.setVisibility(View.VISIBLE);
-                        viewById.setImageBitmap(bitmap);
-                    }
-
-                    @Override
                     public void onFail() {
                         Log.e(TAG, "onFail: ");
                     }
@@ -106,12 +97,6 @@ public class Camera0Activity extends AppCompatActivity implements View.OnClickLi
                 break;
             case R.id.btn_switch:
                 cameraPreview.switchCamer();
-                break;
-            case R.id.btn_smallview:
-//                setViewVisible(R.id.view_empty, View.VISIBLE);
-                break;
-            case R.id.btn_largeview:
-//                setViewVisible(R.id.view_empty, View.GONE);
                 break;
         }
     }

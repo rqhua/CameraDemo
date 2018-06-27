@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.administrator.camerademo.CallSystemCameraActivity">
+    tools:context="com.example.administrator.camerademo.system.CallSystemCameraActivity">
 
     <ImageView
         android:id="@+id/imageview"

@@ -1,4 +1,4 @@
-package com.example.administrator.camerademo;
+package com.example.administrator.camerademo.define;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -24,8 +24,24 @@ public class LubanCompress {
             options.inSampleSize = 1;
             Bitmap tagBitmap = BitmapFactory.decodeByteArray(srcData, 0, srcData.length, options);
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
+
             tagBitmap.compress(Bitmap.CompressFormat.JPEG, 60, stream);
 
+            FileOutputStream fos = new FileOutputStream(targetFile);
+            fos.write(stream.toByteArray());
+            fos.flush();
+            fos.close();
+            stream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void bitmapToFile(Bitmap tagBitmap, File targetFile) {
+        try {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            tagBitmap.compress(Bitmap.CompressFormat.JPEG, 60, stream);
             FileOutputStream fos = new FileOutputStream(targetFile);
             fos.write(stream.toByteArray());
             fos.flush();

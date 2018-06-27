@@ -1,16 +1,13 @@
 package com.example.administrator.camerademo;
 
 import android.content.Intent;
-import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ImageView;
 
-import com.squareup.picasso.MemoryPolicy;
-import com.squareup.picasso.NetworkPolicy;
-import com.squareup.picasso.Picasso;
+import com.example.administrator.camerademo.define.Camera0Activity;
+import com.example.administrator.camerademo.system.CallSystemCameraActivity;
 
 public class MainActivity extends AppCompatActivity {
     View.OnClickListener onClickListener = new View.OnClickListener() {
@@ -49,21 +46,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         findViewById(R.id.btn_define_capture).setOnClickListener(onClickListener);
         findViewById(R.id.btn_system_capture).setOnClickListener(onClickListener);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 2 && resultCode == RESULT_OK) {
-            String picPath = CameraActivity.getPicPath(data);
-            ImageView imageView = (ImageView) findViewById(R.id.imageview);
-
-
-            Picasso.with(this)
-                    .load("file:" + picPath).networkPolicy(NetworkPolicy.NO_CACHE)
-                    .memoryPolicy(MemoryPolicy.NO_CACHE)
-                    .into(imageView);
-        }
     }
 
     @Override

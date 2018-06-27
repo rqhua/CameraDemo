@@ -1,4 +1,4 @@
-package com.example.administrator.camerademo;
+package com.example.administrator.camerademo.system;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -14,9 +14,13 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
 
+import com.example.administrator.camerademo.Logger;
+import com.example.administrator.camerademo.R;
+import com.example.administrator.camerademo.define.Camera0Activity;
 import com.rqhua.demo.fileprovider.FileProvider7;
 
 import java.io.File;
@@ -26,6 +30,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import top.zibin.luban.CompressionPredicate;
 import top.zibin.luban.Luban;
 import top.zibin.luban.OnCompressListener;
 
@@ -50,7 +55,7 @@ public class CallSystemCameraActivity extends AppCompatActivity {
 
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        String filename = System.currentTimeMillis() + ".png";
+        String filename = System.currentTimeMillis() + ".jpeg";
         File file = new File(getFilesDir(), filename);
         mCurrentPhotoPath = file.getAbsolutePath();
         //7.0以后对应用间共享文件，需要通过FileProvider操作，使用系统相机从新定义图片保存路径属于应用间共享文件，适配如下
@@ -93,7 +98,34 @@ public class CallSystemCameraActivity extends AppCompatActivity {
 //                Bundle extras = data.getExtras();
 //                Bitmap imageBitmap = (Bitmap) extras.get("data");
 //                mImageView.setImageBitmap(imageBitmap);
-                mImageView.setImageBitmap(BitmapFactory.decodeFile(mCurrentPhotoPath));
+
+                Luban.with(CallSystemCameraActivity.this)
+                        .load(mCurrentPhotoPath)
+                        .ignoreBy(100)
+                        .setTargetDir(getFilesDir() + "/picture_compress.jpeg")
+                        .filter(new CompressionPredicate() {
+                            @Override
+                            public boolean apply(String path) {
+                                return !(TextUtils.isEmpty(path) || path.toLowerCase().endsWith(".jpeg"));
+                            }
+                        })
+                        .setCompressListener(new OnCompressListener() {
+                            @Override
+                            public void onStart() {
+                                // TODO 压缩开始前调用，可以在方法内启动 loading UI
+                            }
+
+                            @Override
+                            public void onSuccess(File file) {
+                                // TODO 压缩成功后调用，返回压缩后的图片文件
+                                mImageView.setImageBitmap(BitmapFactory.decodeFile(file.getAbsolutePath()));
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                // TODO 当压缩过程出现问题时调用
+                            }
+                        }).launch();
             }
         } catch (Exception e) {
             Logger.error("", e);

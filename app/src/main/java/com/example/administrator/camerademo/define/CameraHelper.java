@@ -1,4 +1,4 @@
-package com.example.administrator.camerademo;
+package com.example.administrator.camerademo.define;
 
 import android.app.Activity;
 import android.content.Context;
@@ -7,16 +7,14 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
-import android.os.Handler;
-import android.os.Message;
+import android.os.AsyncTask;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
-import java.io.ByteArrayOutputStream;
+import com.example.administrator.camerademo.Logger;
+
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -151,6 +149,7 @@ public class CameraHelper {
                 callback.onSuccess();
             }
         } catch (Exception e) {
+            Logger.error("", e);
             callback.onFail();
         }
     }
@@ -164,18 +163,27 @@ public class CameraHelper {
         parameters.setPictureFormat(ImageFormat.JPEG);
         //场景模式有可能会修改其他的模式的值
         String sceneMode = parameters.getSceneMode();
-        if (sceneMode != null && !sceneMode.equals(Camera.Parameters.SCENE_MODE_ACTION)) {
-            parameters.setSceneMode(Camera.Parameters.SCENE_MODE_ACTION);
+        List<String> supportedSceneModes = parameters.getSupportedSceneModes();
+        if (supportedSceneModes != null && supportedSceneModes.contains(Camera.Parameters.SCENE_MODE_ACTION)) {
+            if (sceneMode != null && !sceneMode.equals(Camera.Parameters.SCENE_MODE_ACTION)) {
+                parameters.setSceneMode(Camera.Parameters.SCENE_MODE_ACTION);
+            }
         }
         //闪光模式
         String flashMode = parameters.getFlashMode();
-        if (flashMode != null && !flashMode.equals(Camera.Parameters.FLASH_MODE_AUTO)) {
-            parameters.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
+        List<String> supportedFlashModes = parameters.getSupportedFlashModes();
+        if (supportedFlashModes != null && supportedFlashModes.contains(Camera.Parameters.FLASH_MODE_AUTO)) {
+            if (flashMode != null && !flashMode.equals(Camera.Parameters.FLASH_MODE_AUTO)) {
+                parameters.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
+            }
         }
         //对焦模式
         String focusMode = parameters.getFocusMode();
-        if (!focusMode.equals(Camera.Parameters.FOCUS_MODE_AUTO)) {
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+        List<String> supportedFocusModes = parameters.getSupportedFocusModes();
+        if (supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+            if (focusMode != null && !focusMode.equals(Camera.Parameters.FOCUS_MODE_AUTO)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            }
         }
 
         List<Camera.Size> supportedPreviewSizes = parameters.getSupportedPreviewSizes();
@@ -225,9 +233,7 @@ public class CameraHelper {
             } else {  // back-facing
                 result = (info.orientation - degrees + 360) % 360;
             }
-            Logger.debug("degress " + degrees);
-            Logger.debug("CameraInfo.orientation " + info.orientation);
-            Logger.debug("result " + result);
+
             displayOrientation = result;
             camera.setDisplayOrientation(result);
         } catch (Exception e) {
@@ -241,12 +247,16 @@ public class CameraHelper {
             Logger.debug("startPreview");
             mCamera.startPreview();
             previewing = true;
-            mCamera.autoFocus(new Camera.AutoFocusCallback() {
-                @Override
-                public void onAutoFocus(boolean success, Camera camera) {
-                    Logger.debug("onAutoFocus " + (success ? "success" : "fail"));
-                }
-            });
+            try {
+                mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                    @Override
+                    public void onAutoFocus(boolean success, Camera camera) {
+                        Logger.debug("onAutoFocus " + (success ? "success" : "fail"));
+                    }
+                });
+            } catch (Exception e) {
+                Logger.error("Exception", e);
+            }
         }
     }
 
@@ -314,9 +324,8 @@ public class CameraHelper {
             public void onPictureTaken(byte[] data, Camera camera) {
                 Logger.debug("onPictureTaken: Success");
                 previewing = false;
-
-                try {
-
+                new SaveTask(data, mActivity.getFilesDir() + "/picture.jpeg", callback).execute();
+                /*try {
                     if (displayOrientation == -1) {
                         displayOrientation = 0;
                     }
@@ -324,35 +333,103 @@ public class CameraHelper {
                         displayOrientation = -displayOrientation;
                     }
 
-
+                    File file = new File(mActivity.getFilesDir() + "/picture.jpeg");
+                    if (!file.exists())
+                        file.createNewFile();
                     LubanCompress compress = new LubanCompress();
                     //压缩
-                    Bitmap srcBitmap = compress.compress(data);
+                    Bitmap srcBitmap = compress(data);
                     //旋转
                     srcBitmap = compress.rotate(displayOrientation, srcBitmap);
                     if (isFrontCamera) {
                         //前置摄像头拍照，左右对调
                         srcBitmap = compress.reverseLR(srcBitmap);
                     }
-                    callback.onSuccess(srcBitmap, data);
-                    /*File file = new File(mActivity.getFilesDir() + "/picture.jpeg");
-                    if (!file.exists())
-                        file.createNewFile();
-                    LubanCompress compress = new LubanCompress();
-                    compress.datasToFile(data, file);
-                    callback.onSuccess(file, data);*/
+                    compress.bitmapToFile(srcBitmap, file);
+                    callback.onSuccess(file);
                 } catch (Exception e) {
                     e.printStackTrace();
                     callback.onFail();
-                }
+                }*/
             }
         });
     }
 
+    private class SaveTask extends AsyncTask<Void, Void, Integer> {
+        private byte[] data;
+        private CaptureCallback captureCallback;
+        private File file;
+        private String filePath;
 
-    private static final int MAX_PREVIEW_WIDTH = 1920;
+        public SaveTask(byte[] data, String filePath, CaptureCallback captureCallback) {
+            this.data = data;
+            this.captureCallback = captureCallback;
+            this.filePath = filePath;
+        }
 
-    private static final int MAX_PREVIEW_HEIGHT = 1080;
+        @Override
+        protected Integer doInBackground(Void... voids) {
+            try {
+                if (displayOrientation == -1) {
+                    displayOrientation = 0;
+                }
+                if (isFrontCamera && displayOrientation > 0) {
+                    displayOrientation = -displayOrientation;
+                }
+
+                file = new File(filePath);
+                if (!file.exists())
+                    file.createNewFile();
+                LubanCompress compress = new LubanCompress();
+                //压缩
+                Bitmap srcBitmap = compress(data);
+                //旋转
+                srcBitmap = compress.rotate(displayOrientation, srcBitmap);
+                if (isFrontCamera) {
+                    //前置摄像头拍照，左右对调
+                    srcBitmap = compress.reverseLR(srcBitmap);
+                }
+                compress.bitmapToFile(srcBitmap, file);
+                return 1;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return -1;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Integer integer) {
+            if (integer != null && integer == 1) {
+                captureCallback.onSuccess(file);
+            } else {
+                captureCallback.onFail();
+            }
+        }
+    }
+
+    public Bitmap compress(byte[] data) {
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inJustDecodeBounds = true;
+        Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+        opts.inJustDecodeBounds = false;
+
+        int w = opts.outWidth;
+        int h = opts.outHeight;
+        float standardW = 480f;
+        float standardH = 800f;
+
+        int zoomRatio = 1;
+        if (w > h && w > standardW) {
+            zoomRatio = (int) (w / standardW);
+        } else if (w < h && h > standardH) {
+            zoomRatio = (int) (h / standardH);
+        }
+        if (zoomRatio <= 0)
+            zoomRatio = 1;
+        opts.inSampleSize = zoomRatio;
+        bmp = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+        return bmp;
+    }
 
     private Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int width, int height) {
         int w = Math.max(width, height);
@@ -367,13 +444,11 @@ public class CameraHelper {
         for (Camera.Size size : sizes) {
             double ratio = (double) size.width / size.height;
             if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) {
-                Logger.debug("continue");
                 continue;
             }
             if (Math.abs(size.height - targetHeight) < minDiff) {
                 optimalSize = size;
                 minDiff = Math.abs(size.height - targetHeight);
-                Logger.debug("minDiff " + minDiff);
             }
         }
         // Cannot find the one match the aspect ratio, ignore the requirement
@@ -387,51 +462,6 @@ public class CameraHelper {
             }
         }
         return optimalSize;
-    }
-
-    public Camera.Size chooseOptimalSize(Activity activity, List<Camera.Size> choices, int viewWidth, int viewHeight) {
-        if (mCamera == null)
-            return null;
-        Logger.debug("viewWidth " + viewWidth);
-        Logger.debug("viewHeight " + viewHeight);
-        boolean swappedDimensions = false;
-        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        switch (rotation) {
-            case Surface.ROTATION_0:
-            case Surface.ROTATION_180:
-                swappedDimensions = true;
-                Logger.debug("width <> height");
-                break;
-            case Surface.ROTATION_90:
-            case Surface.ROTATION_270:
-                Logger.debug("width no height");
-                break;
-        }
-        int rotatedPreviewWidth = viewWidth;
-        int rotatedPreviewHeight = viewHeight;
-        if (swappedDimensions) {
-            rotatedPreviewWidth = viewHeight;
-            rotatedPreviewHeight = viewWidth;
-        }
-        for (Camera.Size option : choices) {
-            Logger.debug("option.width " + option.width);
-            Logger.debug("option.height " + option.height);
-        }
-        Camera.Size size = CamParaUtil.getInstance().getOptimalSize(choices, rotatedPreviewWidth, rotatedPreviewHeight);
-        Logger.debug("size.width " + size.width);
-        Logger.debug("size.height " + size.height);
-//        mCamera.setParameters(parameters);
-        return size;
-    }
-
-    static class CompareSizesByArea implements Comparator<Camera.Size> {
-
-        @Override
-        public int compare(Camera.Size lhs, Camera.Size rhs) {
-            // We cast here to ensure the multiplications won't overflow
-            return Long.signum((long) lhs.width * lhs.height - (long) rhs.width * rhs.height);
-        }
-
     }
 
     /**
@@ -456,9 +486,7 @@ public class CameraHelper {
 
     //拍照回调
     public interface CaptureCallback {
-        void onSuccess(Bitmap bitmap, byte[] data);
-
-        void onSuccess(File file, byte[] data);
+        void onSuccess(File file);
 
         void onFail();
     }

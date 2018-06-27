@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.administrator.camerademo.Camera0Activity">
+    tools:context="com.example.administrator.camerademo.define.Camera0Activity">
 
     <FrameLayout
         android:id="@+id/camera_preview"
@@ -15,7 +15,8 @@
         android:id="@+id/image"
         android:layout_width="300dp"
         android:layout_height="400dp"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentTop="true"
+        android:layout_margin="20dp"
         android:scaleType="centerCrop" />
 
     <LinearLayout
@@ -39,21 +40,6 @@
             android:layout_weight="1"
             android:text="切换" />
 
-        <Button
-            android:id="@+id/btn_largeview"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:layout_weight="1"
-            android:text="大预览" />
-
-        <Button
-            android:id="@+id/btn_smallview"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:layout_weight="1"
-            android:text="小预览" />
     </LinearLayout>
 
 

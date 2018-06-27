@@ -1,11 +1,12 @@
-package com.example.administrator.camerademo;
+package com.example.administrator.camerademo.define;
 
 import android.app.Activity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
 
-import java.io.File;
+import com.example.administrator.camerademo.Logger;
+
 
 /**
  * Created by Administrator on 2018/5/23.
@@ -40,8 +41,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         Logger.debug("surfaceCreated");
-
-
     }
 
     @Override
