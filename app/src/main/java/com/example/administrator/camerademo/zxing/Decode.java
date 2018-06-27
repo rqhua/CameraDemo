@@ -26,6 +26,7 @@ import java.util.Map;
 public class Decode {
     private static MultiFormatReader multiFormatReader;
     private final Map<DecodeHintType, Object> hints;
+
     //条码
     public static final int BARCODE_MODE = 0X100;
     //二维码
