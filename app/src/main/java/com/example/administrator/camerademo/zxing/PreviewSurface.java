@@ -99,6 +99,10 @@ public class PreviewSurface extends SurfaceView implements SurfaceHolder.Callbac
         getCameraHelper().capture(callback);
     }
 
+    public void stop(){
+        getCameraHelper().stopPreviewAndFreeCamera();
+    }
+
     public void switchCamer() {
         getCameraHelper().switchCamera(openCallback);
     }

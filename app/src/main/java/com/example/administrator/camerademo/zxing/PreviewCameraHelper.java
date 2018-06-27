@@ -272,7 +272,8 @@ public class PreviewCameraHelper {
             previewCallback.setPreviewSize(previewSize);
         }
         if (previewCallback != null)
-            mCamera.setOneShotPreviewCallback(previewCallback);
+            mCamera.setPreviewCallback(previewCallback);
+//            mCamera.setOneShotPreviewCallback(previewCallback);
     }
 
     public void setPreviewDisplayAndStart(SurfaceHolder holder) {

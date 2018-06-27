@@ -17,20 +17,22 @@ public class ScanActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan);
         previewSurface = new PreviewSurface(this);
-        FrameLayout preview = (FrameLayout) findViewById(R.id.preview);
+        final FrameLayout preview = (FrameLayout) findViewById(R.id.preview);
         preview.addView(previewSurface);
         previewCallback = new PreviewCallback(new Decode.DecodeCallback() {
             @Override
             public void onSuccess(Result result) {
                 Logger.debug("=========result========= " + result);
+                previewSurface.stop();
             }
 
             @Override
             public void onFail() {
                 Logger.debug("onFail");
-                previewSurface.setPreviewCallback(previewCallback);
+//                previewSurface.setPreviewCallback(previewCallback);
             }
         });
         previewSurface.setPreviewCallback(previewCallback);
     }
+
 }

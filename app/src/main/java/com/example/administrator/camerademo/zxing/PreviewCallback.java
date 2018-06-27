@@ -47,8 +47,23 @@ public class PreviewCallback implements Camera.PreviewCallback {
     public void onPreviewFrame(byte[] data, Camera camera) {
         Logger.debug("onPreviewFrame");
         if (previewSize != null) {
-            this.data = data;
-            new DecodeTask().execute();
+            Result rawResult = Decode.getInstance().decode(getPreviewSize(), data);
+            if (rawResult != null) {
+                Logger.debug("Decode Success");
+                if (callback != null)
+                    callback.onSuccess(rawResult);
+            } else {
+                Logger.debug("Decode Fail");
+                if (callback != null)
+                    callback.onFail();
+            }
+//            this.data = data;
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            new DecodeTask().execute();
         } else {
             Logger.debug("onPreviewFrame previewSize == null");
         }
