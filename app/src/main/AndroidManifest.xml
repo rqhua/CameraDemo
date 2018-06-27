@@ -8,7 +8,6 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="true" />
-
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -32,7 +31,10 @@
         <activity
             android:name=".define.Camera0Activity"
             android:theme="@style/AppTheme.FullScreen" />
-        <activity android:name=".system.CallSystemCameraActivity"></activity>
+        <activity android:name=".system.CallSystemCameraActivity" />
+        <activity
+            android:name=".zxing.ScanActivity"
+            android:theme="@style/AppTheme.FullScreen"></activity>
     </application>
 
 </manifest>

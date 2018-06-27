@@ -16,6 +16,8 @@ import java.io.IOException;
 
 public class LubanCompress {
 
+
+
     public void datasToFile(byte[] srcData, File targetFile) {
 
         try {
