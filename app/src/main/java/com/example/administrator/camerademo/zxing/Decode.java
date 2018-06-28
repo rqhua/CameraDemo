@@ -89,9 +89,6 @@ public class Decode {
 //        int tmp = previewSize.width;
 //        previewSize.width = previewSize.height;
 //        previewSize.height = tmp;
-
-
-
         int dataWidth = previewSize.height;
         int dataHeight = previewSize.width;
         int left = rect.left;
@@ -104,7 +101,6 @@ public class Decode {
         }
         Result rawResult = null;
         PlanarYUVLuminanceSource source = buildLuminanceSource(rotatedData, dataWidth, dataHeight, rect);
-//        YUVLuminanceSource source = new YUVLuminanceSource(rotatedData, dataWidth, dataHeight, left, top, width, height, false);
         if (source != null) {
             BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
             try {
@@ -129,13 +125,6 @@ public class Decode {
      * @return A PlanarYUVLuminanceSource instance.
      */
     public static PlanarYUVLuminanceSource buildLuminanceSource(byte[] data, int width, int height, Rect rect) {
-//        Rect rect = null; //条码区域
-//        if (rect == null) {
-//            return null;
-//        }
-        // Go ahead and assume it's YUV rather than die.
-//        return new PlanarYUVLuminanceSource(data, width, height, 0, 0, width, height, false);
-        //byte[] yuvData, int dataWidth, int dataHeight, int left, int top, int width, int height, boolean reverseHorizontal
         return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top, rect.width(), rect.height(), false);
     }
 
