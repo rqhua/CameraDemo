@@ -6,23 +6,30 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Rect;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.view.Surface;
 import android.view.SurfaceHolder;
+import android.view.View;
 
 import com.example.administrator.camerademo.Logger;
 import com.example.administrator.camerademo.define.LubanCompress;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by Administrator on 2018/5/23.
  */
 
-public class PreviewCameraHelper {
+public class PreviewCameraHelper implements SensorEventListener, Camera.AutoFocusCallback {
     private static final String TAG = "CameraHelper";
     private Activity mActivity;
     private Camera mCamera = null;
@@ -30,24 +37,33 @@ public class PreviewCameraHelper {
     private int mCurrentId = -1;
     private int mWidth;
     private int mHeight;
+    private SensorManager mSensorManager;
+    private Sensor mSensor;
 
     private boolean isFrontCamera = false;
 
     private boolean previewing = false;
+    private boolean focusing = false;
+
+    private View scanCropView = null;
+    private Rect mCropRect = null;
 
     public PreviewCameraHelper(Activity activity) {
         mActivity = activity;
+        mSensorManager = (SensorManager) mActivity.getSystemService(Activity.SENSOR_SERVICE);
+        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
     /**
      * A safe way to get an instance of the Camera object.
      */
-    public void initCamera(int width, int height, final OpenCallback callback) {
+    public void initCamera(int width, int height, Rect mCropRect, final OpenCallback callback) {
         if (callback == null) {
             throw new NullPointerException("callback Can not be Null");
         }
         mWidth = width;
         mHeight = height;
+        this.mCropRect = mCropRect;
         stopPreviewAndFreeCamera();
         int numberOfCameras = Camera.getNumberOfCameras();
         int back = -1;
@@ -147,6 +163,7 @@ public class PreviewCameraHelper {
                 setCameraDisplayOrientation(mActivity, id, mCamera);
                 //设置参数
                 setParamaters(mCamera);
+                mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
                 callback.onSuccess();
             }
         } catch (Exception e) {
@@ -193,12 +210,40 @@ public class PreviewCameraHelper {
         previewSize = getOptimalPreviewSize(supportedPreviewSizes, mWidth, mHeight);
         if (previewSize != null)
             parameters.setPreviewSize(previewSize.width, previewSize.height);
+
         List<Camera.Size> supportedPictureSizes = parameters.getSupportedPictureSizes();
         //设置图片尺寸
         Camera.Size pictureSize = getOptimalPreviewSize(supportedPictureSizes, mWidth, mHeight);
         if (pictureSize != null)
             parameters.setPictureSize(pictureSize.width, pictureSize.height);
+        int focusAreas = parameters.getMaxNumFocusAreas();
+        Logger.debug("222 focusAreas " + focusAreas);
         camera.setParameters(parameters);
+    }
+
+
+    /**
+     * 设置对焦区域
+     */
+    private Rect getFocusAreas(Rect rect) {
+        if (rect == null)
+            return null;
+        Logger.debug("222 source " + rect.left + " " + rect.top + " " + rect.right + " " + rect.bottom + " ");
+
+        if (previewSize == null)
+            return null;
+
+        int widthR = 2000 / previewSize.width;
+        int heightR = 2000 / previewSize.height;
+        //坐标系平移
+        Rect resultRect = new Rect(
+                rect.left * widthR - 1000,
+                rect.top * heightR - 1000,
+                rect.right * widthR - 1000,
+                rect.bottom * heightR - 1000);
+//        Rect resultRect = new Rect(rect.left - 1000, rect.top - 1000, rect.right - 1000, rect.bottom - 1000);
+        Logger.debug("222 source " + resultRect.left + " " + resultRect.top + " " + resultRect.right + " " + resultRect.bottom + " ");
+        return resultRect;
     }
 
     Camera.Size previewSize;
@@ -251,29 +296,90 @@ public class PreviewCameraHelper {
             Logger.debug("startPreview");
             mCamera.startPreview();
             previewing = true;
-            try {
-                mCamera.autoFocus(new Camera.AutoFocusCallback() {
-                    @Override
-                    public void onAutoFocus(boolean success, Camera camera) {
-                        Logger.debug("onAutoFocus " + (success ? "success" : "fail"));
-                    }
-                });
-            } catch (Exception e) {
-                Logger.error("Exception", e);
-            }
         }
+    }
+
+    private int mX;
+    private int mY;
+    private int mZ;
+    private long lastFocusMillis = 0;
+
+    //传感器回调
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor == null) {
+            return;
+        }
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            int x = (int) event.values[0];
+            int y = (int) event.values[1];
+            int z = (int) event.values[2];
+
+            int px = Math.abs(mX - x);
+            int py = Math.abs(mY - y);
+            int pz = Math.abs(mZ - z);
+
+            double value = Math.sqrt(px * px + py * py + pz * pz);
+            if (value > 1.4) {
+                lastFocusMillis = System.currentTimeMillis();
+            } else {
+
+                long currentMillis = System.currentTimeMillis();
+                if (currentMillis - lastFocusMillis > 800) {
+                    lastFocusMillis = currentMillis;
+
+                    focus();
+                }
+            }
+            mX = x;
+            mY = y;
+            mZ = z;
+        }
+    }
+
+    //传感器回调
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    private void focus() {
+        if (mCamera != null && previewing) {
+            Logger.debug("聚焦");
+            /*Camera.Parameters parameters = mCamera.getParameters();
+            List<Camera.Area> areas = new ArrayList<>();
+            Rect focusAreas1 = getFocusAreas(mCropRect);
+            if (focusAreas1 != null) {
+                areas.add(new Camera.Area(focusAreas1, 1000));
+                parameters.setFocusAreas(areas);
+            }
+            mCamera.setParameters(parameters);*/
+            mCamera.autoFocus(this);
+        }
+    }
+
+    //自动对焦回调
+    @Override
+    public void onAutoFocus(boolean success, Camera camera) {
+
+        if (mCamera != null) {
+            mCamera.cancelAutoFocus();
+        }
+        Logger.debug("==========onAutoFocus " + (success ? "success" : "fail"));
     }
 
     private PreviewCallback previewCallback;
 
-    public void setOneShotPreviewCallback(PreviewCallback callback) {
+    public void requestPreviewFrame(PreviewCallback callback) {
         if (previewCallback == null) {
             this.previewCallback = callback;
             previewCallback.setPreviewSize(previewSize);
+            previewCallback.setScopRect(mCropRect);
         }
         if (previewCallback != null)
             mCamera.setPreviewCallback(previewCallback);
-//            mCamera.setOneShotPreviewCallback(previewCallback);
+        startPreview();
     }
 
     public void setPreviewDisplayAndStart(SurfaceHolder holder) {
@@ -296,9 +402,8 @@ public class PreviewCameraHelper {
     public void stopPreView() {
         if (mCamera != null && previewing) {
             Logger.debug("stopPreView");
-            // Call stopPreview() to stop updating the preview surface.
             mCamera.stopPreview();
-            mCamera.setOneShotPreviewCallback(null);
+            mCamera.setPreviewCallback(null);
             previewing = false;
         }
     }
@@ -307,11 +412,8 @@ public class PreviewCameraHelper {
     public void stopPreviewAndFreeCamera() {
         try {
             if (mCamera != null) {
-                // Call stopPreview() to stop updating the preview surface.
+                mSensorManager.unregisterListener(this, mSensor);
                 stopPreView();
-                // Important: Call release() to release the camera for use by other
-                // applications. Applications should release the camera immediately
-                // during onPause() and re-onResume() it during onResume()).
                 mCamera.release();
                 mCamera = null;
                 Logger.debug("stopPreviewAndFreeCamera");
@@ -342,32 +444,6 @@ public class PreviewCameraHelper {
                 Logger.debug("onPictureTaken: Success");
                 previewing = false;
                 new SaveTask(data, mActivity.getFilesDir() + "/picture.jpeg", callback).execute();
-                /*try {
-                    if (displayOrientation == -1) {
-                        displayOrientation = 0;
-                    }
-                    if (isFrontCamera && displayOrientation > 0) {
-                        displayOrientation = -displayOrientation;
-                    }
-
-                    File file = new File(mActivity.getFilesDir() + "/picture.jpeg");
-                    if (!file.exists())
-                        file.createNewFile();
-                    LubanCompress compress = new LubanCompress();
-                    //压缩
-                    Bitmap srcBitmap = compress(data);
-                    //旋转
-                    srcBitmap = compress.rotate(displayOrientation, srcBitmap);
-                    if (isFrontCamera) {
-                        //前置摄像头拍照，左右对调
-                        srcBitmap = compress.reverseLR(srcBitmap);
-                    }
-                    compress.bitmapToFile(srcBitmap, file);
-                    callback.onSuccess(file);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    callback.onFail();
-                }*/
             }
         });
     }

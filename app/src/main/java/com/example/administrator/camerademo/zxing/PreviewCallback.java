@@ -17,6 +17,7 @@
 package com.example.administrator.camerademo.zxing;
 
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -29,10 +30,19 @@ import com.google.zxing.Result;
 public class PreviewCallback implements Camera.PreviewCallback {
     private Camera.Size previewSize;
     private Decode.DecodeCallback callback;
+    private Rect scopRect;
     private static byte[] data;
 
     public PreviewCallback(Decode.DecodeCallback callback) {
         this.callback = callback;
+    }
+
+    public Rect getScopRect() {
+        return scopRect;
+    }
+
+    public void setScopRect(Rect scopRect) {
+        this.scopRect = scopRect;
     }
 
     public Camera.Size getPreviewSize() {
@@ -47,7 +57,7 @@ public class PreviewCallback implements Camera.PreviewCallback {
     public void onPreviewFrame(byte[] data, Camera camera) {
         Logger.debug("onPreviewFrame");
         if (previewSize != null) {
-            Result rawResult = Decode.getInstance().decode(getPreviewSize(), data);
+            Result rawResult = Decode.getInstance().decode(getPreviewSize(), data, getScopRect());
             if (rawResult != null) {
                 Logger.debug("Decode Success");
                 if (callback != null)
@@ -57,37 +67,8 @@ public class PreviewCallback implements Camera.PreviewCallback {
                 if (callback != null)
                     callback.onFail();
             }
-//            this.data = data;
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//            new DecodeTask().execute();
         } else {
             Logger.debug("onPreviewFrame previewSize == null");
         }
     }
-
-    private class DecodeTask extends AsyncTask<Void, Void, Result> {
-
-        @Override
-        protected Result doInBackground(Void... voids) {
-            return Decode.getInstance().decode(getPreviewSize(), data);
-        }
-
-        @Override
-        protected void onPostExecute(Result rawResult) {
-            if (rawResult != null) {
-                Logger.debug("Decode Success");
-                if (callback != null)
-                    callback.onSuccess(rawResult);
-            } else {
-                Logger.debug("Decode Fail");
-                if (callback != null)
-                    callback.onFail();
-            }
-        }
-    }
-
 }
